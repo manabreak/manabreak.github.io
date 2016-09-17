@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Game Scripting with Lua Part 2 - Scripts Ho!</title>
+    <meta name="description" content="The last timewe looked at how to enabled Lua scripting in your C++ code.This time, we take a step forward and actually write somethingwith Lua!">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://yourdomain.com/gamedev/2015/09/05/lua-and-cpp-part-2.html">
+    <link rel="alternate" type="application/rss+xml" title="fyi." href="http://yourdomain.com/feed.xml" />
+
+
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+                    m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-52445936-14', 'auto');
+        ga('send', 'pageview');
+
+    </script>
+</head>
+
+
+    <body>
+
+        <header class="site-header">
+
+    <div class="wrapper">
+
+        <div class="title-div">
+            <a class="site-title" href="/">fyi.</a>
+        </div>
+    </div>
+
+    <div class="wrapper">
+        <nav class="site-nav">
+            <a href="#" class="menu-icon">
+                <svg viewBox="0 0 18 15">
+                <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+                <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+                <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+                </svg>
+            </a>
+
+            <div class="trigger">
+                
+                <!-- Static 'Home' link -->
+                <a class="page-link" href="/">Home</a>
+                
+                
+                
+                
+                
+                
+                
+                
+            </div>
+        </nav>
+
+    </div>
+
+</header>
+
+
+        <div class="wrapper">
+        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        <!-- fyi - page - under header -->
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-3632636155475507"
+             data-ad-slot="5572041490"
+             data-ad-format="auto"></ins>
+        <script>
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        </script> 
+        </div>
+
+        <div class="page-content">
+            <div class="wrapper">
+                <div class="post">
+
+    <header class="post-header">
+        <div class="buy-coffee-post-header">
+            <a href='http://ko-fi.com?i=9152LY80MBJF' target='_blank' class="coffee-link">
+                <img style='border:0px' width="150px" src='https://az743702.vo.msecnd.net/cdn/btn1.png' border='0' alt='Buy Me A Coffee at Ko-Fi.com' class="coffee-img"/>
+            </a> 
+        </div>
+        <h1 class="post-title">Game Scripting with Lua Part 2 - Scripts Ho!</h1>
+        <p class="post-meta">Sep 5, 2015</p>
+
+
+    </header>
+
+    <article class="post-content">
+        <p>The <a href="http://manabreak.eu/gamedev/2015/09/04/lua-and-cpp.html">last time</a>
+we looked at how to enabled Lua scripting in your C++ code.
+This time, we take a step forward and actually write something
+with Lua!</p>
+
+<h2 id="hello-lua">Hello? Lua?</h2>
+
+<p>So, in the game-specific layer, I have three methods that get
+called from the engine: <code class="highlighter-rouge">create()</code>, <code class="highlighter-rouge">update()</code> and <code class="highlighter-rouge">draw()</code>. In
+the <code class="highlighter-rouge">create()</code> method, all the systems are created and the start-up
+script is loaded and called. In <code class="highlighter-rouge">update()</code> the systems are updated,
+and in the <code class="highlighter-rouge">draw()</code> function, all the “passive” rendering systems
+are updated. All in all it looks like this:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="c1">// Initializes the systems and loads the starting script
+</span><span class="kt">void</span> <span class="n">GameStage</span><span class="o">::</span><span class="n">create</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="c1">// Add an "action system"
+</span>    <span class="n">m_world</span><span class="p">.</span><span class="n">addSystem</span><span class="o">&lt;</span><span class="n">ActionSystem</span><span class="o">&gt;</span><span class="p">();</span>
+    <span class="c1">// Add a physics system
+</span>    <span class="n">m_world</span><span class="p">.</span><span class="n">addSystem</span><span class="o">&lt;</span><span class="n">Physics</span><span class="o">&gt;</span><span class="p">();</span>
+    <span class="c1">// Add a sprite drawing system
+</span>    <span class="n">m_world</span><span class="p">.</span><span class="n">addSystem</span><span class="o">&lt;</span><span class="n">SpriteSystem</span><span class="o">&gt;</span><span class="p">();</span>
+ 
+    <span class="c1">// Load the game scene from script
+</span>    <span class="n">loadFromScript</span><span class="p">();</span>
+<span class="p">}</span>
+ 
+<span class="kt">void</span> <span class="n">GameStage</span><span class="o">::</span><span class="n">loadFromScript</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="c1">// Check if there's an existing state and close it
+</span>    <span class="k">if</span><span class="p">(</span><span class="n">L</span> <span class="o">!=</span> <span class="nb">nullptr</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">lua_close</span><span class="p">(</span><span class="n">L</span><span class="p">);</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">nullptr</span><span class="p">;</span>
+    <span class="p">}</span>
+ 
+    <span class="c1">// Create a new lua state
+</span>    <span class="n">L</span> <span class="o">=</span> <span class="n">luaL_newstate</span><span class="p">();</span>
+    <span class="n">luaL_openlibs</span><span class="p">(</span><span class="n">L</span><span class="p">);</span>
+ 
+    <span class="c1">// Expose all the stuff neede
+</span>    <span class="n">expose</span><span class="p">();</span>
+ 
+    <span class="c1">// Push the "World" and "MainCamera" as global variables
+</span>    <span class="n">push</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">m_world</span><span class="p">);</span>
+    <span class="n">lua_setglobal</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="s">"World"</span><span class="p">);</span>
+    <span class="n">push</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">m_camera</span><span class="p">);</span>
+    <span class="n">lua_setglobal</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="s">"MainCamera"</span><span class="p">);</span>
+ 
+    <span class="c1">// Load the script
+</span>    <span class="n">luaL_dofile</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="s">"scripts/stage.lua"</span><span class="p">);</span>
+ 
+    <span class="c1">// Call the "create" method in the script
+</span>    <span class="n">luabridge</span><span class="o">::</span><span class="n">getGlobal</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="s">"create"</span><span class="p">)();</span>
+<span class="p">}</span>
+ 
+<span class="kt">void</span> <span class="n">GameStage</span><span class="o">::</span><span class="n">update</span><span class="p">(</span><span class="kt">float</span> <span class="n">delta</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="c1">// Update the systems
+</span>    <span class="n">m_world</span><span class="p">.</span><span class="n">process</span><span class="p">(</span><span class="n">delta</span><span class="p">);</span>
+<span class="p">}</span>
+ 
+<span class="kt">void</span> <span class="n">GameStage</span><span class="o">::</span><span class="n">draw</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="c1">// Draw all the sprites
+</span>    <span class="n">m_world</span><span class="p">.</span><span class="n">getSystem</span><span class="o">&lt;</span><span class="n">SpriteSystem</span><span class="o">&gt;</span><span class="p">().</span><span class="n">process</span><span class="p">();</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>I’ve taken some of the code out for clarity’s sake, but the
+basic idea is still there. The Lua portion can be updated
+by calling the <code class="highlighter-rouge">loadFromScript()</code> method whenever we want,
+for example when the user presses F3 or when any of the scripts
+has been modified. Nifty!</p>
+
+<p>So, that’s pretty much what’s going on in C++ to get things
+rolling. Let’s take a look at Lua now.</p>
+
+<h2 id="finally-some-scripting">Finally, some scripting!</h2>
+
+<p>First off, let’s take a look at the <code class="highlighter-rouge">stage.lua</code> script we loaded
+in the previous snippet:</p>
+
+<figure class="highlight"><pre><code class="language-lua" data-lang="lua"><span class="c1">-- stage.lua</span>
+ 
+<span class="c1">-- Some basic stuff about this game stage</span>
+<span class="n">stage</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">levelFilename</span> <span class="o">=</span> <span class="s2">"testlevel"</span><span class="p">,</span> <span class="c1">-- name of the level file</span>
+    <span class="n">stageCreated</span> <span class="o">=</span> <span class="kc">false</span>         <span class="c1">-- flag to indicate if stage is created</span>
+<span class="p">}</span>
+ 
+<span class="c1">-- Main entry point, called from C++</span>
+<span class="k">function</span> <span class="nf">create</span><span class="p">()</span>
+    <span class="c1">-- Check if the "World" is exposed</span>
+    <span class="k">if</span><span class="p">(</span><span class="ow">not</span> <span class="n">World</span><span class="p">)</span> <span class="k">then</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"No world found!"</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+ 
+    <span class="c1">-- Load the level</span>
+    <span class="n">loadLevelFromFile</span><span class="p">(</span><span class="n">stage</span><span class="p">.</span><span class="n">levelFilename</span><span class="p">)</span>
+ 
+    <span class="c1">-- Set the camera position</span>
+    <span class="n">MainCamera</span><span class="p">:</span><span class="n">setPosition</span><span class="p">(</span><span class="mi">120</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">400</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">800</span><span class="p">.</span><span class="mi">0</span><span class="p">)</span>
+ 
+    <span class="c1">-- Stage created, yay!</span>
+    <span class="n">stage</span><span class="p">.</span><span class="n">stageCreated</span> <span class="o">=</span> <span class="kc">true</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>This script should be pretty self-explanatory, but let’s go
+through it anyway. First, we define the stage table and set
+a couple of properties there. This could also be dynamically
+loaded from different files that denote different stage set-ups.
+Then, we have the <code class="highlighter-rouge">create()</code> method that gets called from C++.
+This method loads the level from a file, sets the camera
+position and marks the stage as successfully created. Great!
+Although… Nothing happens yet. Let’s look at the <code class="highlighter-rouge">loadLevelFromFile()</code>
+function a bit closer:</p>
+
+<figure class="highlight"><pre><code class="language-lua" data-lang="lua"><span class="c1">-- Loads a level from a Tiled map file</span>
+<span class="k">function</span> <span class="nf">loadLevelFromFile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="c1">-- Check that the Tiled map file exists</span>
+    <span class="kd">local</span> <span class="n">lvlFile</span> <span class="o">=</span> <span class="s2">"assets/"</span> <span class="o">..</span> <span class="n">filename</span> <span class="o">..</span> <span class="s2">".tmx"</span>
+    <span class="kd">local</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">io.open</span><span class="p">(</span><span class="n">lvlFile</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">f</span> <span class="o">==</span> <span class="kc">nil</span><span class="p">)</span> <span class="k">then</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Level file "</span> <span class="o">..</span> <span class="n">filename</span> <span class="o">..</span> <span class="s2">" not found!"</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+ 
+    <span class="c1">-- Call C++ helper function to load the level</span>
+    <span class="n">TiledMap</span> <span class="o">=</span> <span class="n">Game</span><span class="p">.</span><span class="n">Helper</span><span class="p">.</span><span class="n">loadLevel</span><span class="p">(</span><span class="n">World</span><span class="p">,</span> <span class="n">lvlFile</span><span class="p">,</span> <span class="s2">"TestLevel"</span><span class="p">)</span>
+ 
+    <span class="c1">-- Process the tiled map (place objects etc.)</span>
+    <span class="n">processTiledMap</span><span class="p">(</span><span class="n">TiledMap</span><span class="p">)</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>Here we load a Tiled map from a file. The actual loading code is
+in C++, but it could just as well be done in Lua - that’s up to you.
+If the file exists, the map is loaded and passed on to a new
+function called <code class="highlighter-rouge">processTiledMap()</code>. This function is responsible
+for looking through the objects in the map and creating them. This
+is where the magic starts to really happen!</p>
+
+<h2 id="dynamic-stuff">Dynamic stuff</h2>
+
+<p>The main thing I wanted to incorporate was dynamic object creation.
+I want to create Tiled maps, place objects here and there and not
+really care whether or not I have already implemented them in code.
+When I design the levels, I want to focus on that and not care about
+the code - or worse, jump back and forth between coding and level
+creation. So, let’s take a look at the <code class="highlighter-rouge">processTiledMap()</code> function:</p>
+
+<figure class="highlight"><pre><code class="language-lua" data-lang="lua"><span class="c1">-- Processes a Tiled map</span>
+<span class="k">function</span> <span class="nf">processTiledMap</span><span class="p">(</span><span class="n">Map</span><span class="p">)</span>
+    <span class="c1">-- Get the number of layers in the map</span>
+    <span class="n">NumLayers</span> <span class="o">=</span> <span class="n">Map</span><span class="p">:</span><span class="n">getLayerCount</span><span class="p">()</span>
+
+    <span class="c1">-- Loop through the layers</span>
+    <span class="k">for</span> <span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">NumLayers</span> <span class="k">do</span>
+        <span class="c1">-- Get the layer (I - 1) (C++ indexes from 0 onwards)</span>
+        <span class="n">MapLayer</span> <span class="o">=</span> <span class="n">Map</span><span class="p">:</span><span class="n">getLayer</span><span class="p">(</span><span class="n">I</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1">-- If the map layer is called "Spawns",</span>
+        <span class="c1">-- call the processSpawns() function on it</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">MapLayer</span><span class="p">:</span><span class="n">getName</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"Spawns"</span><span class="p">)</span> <span class="k">then</span>
+            <span class="n">processSpawns</span><span class="p">(</span><span class="n">MapLayer</span><span class="p">)</span>
+        <span class="k">end</span>
+    <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>Looks rather simple, doesn’t it? We go through the map layers,
+and if the map layer is called “Spawns”, we process it further.
+At the moment, this is the only layer we’re interested of.
+Moving onward, let’s look at the <code class="highlighter-rouge">processSpawns()</code> function:</p>
+
+<figure class="highlight"><pre><code class="language-lua" data-lang="lua"><span class="c1">-- A table of game objects</span>
+<span class="n">EntityMap</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="c1">-- Processes the "Spawns" layer</span>
+<span class="k">function</span> <span class="nf">processSpawns</span><span class="p">(</span><span class="n">SpawnLayer</span><span class="p">)</span>
+    <span class="c1">-- Get the number of objects in the layer</span>
+    <span class="n">ObjectCount</span> <span class="o">=</span> <span class="n">SpawnLayer</span><span class="p">:</span><span class="n">getObjectCount</span><span class="p">()</span>
+
+    <span class="c1">-- Loop through the objects</span>
+    <span class="k">for</span> <span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ObjectCount</span> <span class="k">do</span>
+        <span class="c1">-- Get the next map object</span>
+        <span class="n">MapObj</span> <span class="o">=</span> <span class="n">SpawnLayer</span><span class="p">:</span><span class="n">getMapObject</span><span class="p">(</span><span class="n">I</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  
+        <span class="c1">-- Get the object name and turn it to lowercase</span>
+        <span class="n">ObjName</span> <span class="o">=</span> <span class="n">MapObj</span><span class="p">:</span><span class="n">getName</span><span class="p">():</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="c1">-- Check if we have a script for the object</span>
+        <span class="kd">local</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">io.open</span><span class="p">(</span><span class="s2">"scripts/"</span> <span class="o">..</span> <span class="n">ObjName</span> <span class="o">..</span> <span class="s2">".lua"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">f</span> <span class="o">==</span> <span class="kc">nil</span><span class="p">)</span> <span class="k">then</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Skipping a spawn: did not find module for "</span> <span class="o">..</span> <span class="n">ObjName</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">end</span>
+
+        <span class="c1">-- Load the script and create a new game object</span>
+        <span class="n">ObjModule</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s1">'scripts/'</span> <span class="o">..</span> <span class="n">ObjName</span><span class="p">)</span>
+        <span class="n">ObjInstance</span> <span class="o">=</span> <span class="n">ObjModule</span><span class="p">:</span><span class="n">new</span><span class="p">(</span><span class="n">MapObj</span><span class="p">)</span>
+
+        <span class="c1">-- Store the entities by name</span>
+        <span class="n">EntityMap</span><span class="p">[</span><span class="n">ObjName</span><span class="p">]</span> <span class="o">=</span> <span class="n">ObjInstance</span>
+    <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>What happens here? We go through the map objects and check
+if we have a script with the same name as the object. If we
+have such a script, we load it with <code class="highlighter-rouge">require()</code> and call <code class="highlighter-rouge">new()</code>
+method on it (which acts as a constructor). For example, if we
+have an objects named “Torch” in our map, we check if there’s
+a file called “torch.lua” in the scripts folder. If there is,
+we construct a new Torch game objects by calling the <code class="highlighter-rouge">new()</code>
+function on the script. By using <code class="highlighter-rouge">require()</code> we ensure that
+each item module is loaded only once and none of the scripts
+are loaded that we do not need.</p>
+
+<p>Next, let’s look at the Torch.lua file to see how we construct
+the item in the end:</p>
+
+<figure class="highlight"><pre><code class="language-lua" data-lang="lua"><span class="c1">-- A table of game objects</span>
+<span class="n">EntityMap</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="c1">-- Processes the "Spawns" layer</span>
+<span class="k">function</span> <span class="nf">processSpawns</span><span class="p">(</span><span class="n">SpawnLayer</span><span class="p">)</span>
+    <span class="c1">-- Get the number of objects in the layer</span>
+    <span class="n">ObjectCount</span> <span class="o">=</span> <span class="n">SpawnLayer</span><span class="p">:</span><span class="n">getObjectCount</span><span class="p">()</span>
+
+    <span class="c1">-- Loop through the objects</span>
+    <span class="k">for</span> <span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ObjectCount</span> <span class="k">do</span>
+        <span class="c1">-- Get the next map object</span>
+        <span class="n">MapObj</span> <span class="o">=</span> <span class="n">SpawnLayer</span><span class="p">:</span><span class="n">getMapObject</span><span class="p">(</span><span class="n">I</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  
+        <span class="c1">-- Get the object name and turn it to lowercase</span>
+        <span class="n">ObjName</span> <span class="o">=</span> <span class="n">MapObj</span><span class="p">:</span><span class="n">getName</span><span class="p">():</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="c1">-- Check if we have a script for the object</span>
+        <span class="kd">local</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">io.open</span><span class="p">(</span><span class="s2">"scripts/"</span> <span class="o">..</span> <span class="n">ObjName</span> <span class="o">..</span> <span class="s2">".lua"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">f</span> <span class="o">==</span> <span class="kc">nil</span><span class="p">)</span> <span class="k">then</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Skipping a spawn: did not find module for "</span> <span class="o">..</span> <span class="n">ObjName</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">end</span>
+
+        <span class="c1">-- Load the script and create a new game object</span>
+        <span class="n">ObjModule</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s1">'scripts/'</span> <span class="o">..</span> <span class="n">ObjName</span><span class="p">)</span>
+        <span class="n">ObjInstance</span> <span class="o">=</span> <span class="n">ObjModule</span><span class="p">:</span><span class="n">new</span><span class="p">(</span><span class="n">MapObj</span><span class="p">)</span>
+
+        <span class="c1">-- Store the entities by name</span>
+        <span class="n">EntityMap</span><span class="p">[</span><span class="n">ObjName</span><span class="p">]</span> <span class="o">=</span> <span class="n">ObjInstance</span>
+    <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>With the help of underlying C++ and its helper methods, constructing
+a new Torch is rather simple. We create a new entity, add a physics
+body sensor, create a sprite and set the position of the torch
+to where the map objects says it should be.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Using Lua along with C++ is rather simple and provides a nice set
+of dynamic functionality that’s missing from C++. Creating
+the underlying engine and bindings can be rather tedious, but
+it will definitely pay off in the end.</p>
+
+<p>In upcoming parts, I’ll show some more advanced things I’ve used
+throughout my set-up. Until then, <a href="http://ko-fi.com/?i=9152LY80MBJF">why don’t you buy me a cup
+of coffee?</a> :)</p>
+
+    </article>
+
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <!-- fyi - post - bottom -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-3632636155475507"
+         data-ad-slot="5770517898"
+         data-ad-format="auto"></ins>
+    <script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+
+</div>
+
+            </div>
+        </div>
+
+        <div class="wrapper">
+    <footer class="site-footer">
+
+        <div class="coffee-wrapper">
+            <a href='http://ko-fi.com?i=9152LY80MBJF' target='_blank' class="coffee-link">
+                <img style='border:0px' width="150px" src='https://az743702.vo.msecnd.net/cdn/btn1.png' border='0' alt='Buy Me A Coffee at Ko-Fi.com' class="coffee-img"/>
+            </a> 
+        </div>
+        
+        
+        <div class="some-wrapper">
+            <a href="https://twitter.com/dManabreak">
+                <span class="icon  icon--twitter">
+                    <svg viewBox="0 0 16 16">
+                    <path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809
+                          c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/>
+                    </svg>
+                </span>
+
+                <span class="username">dManabreak</span>
+            </a>
+        </div>
+        
+
+        <p class="rss-subscribe">subscribe <a href="/feed.xml">via RSS</a></p>
+
+        
+
+    </footer>
+</div>
+
+
+    </body>
+
+</html>
