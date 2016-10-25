@@ -6,9 +6,69 @@
 </description>
     <link>http://yourdomain.com/</link>
     <atom:link href="http://yourdomain.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 23 Oct 2016 10:14:25 +0300</pubDate>
-    <lastBuildDate>Sun, 23 Oct 2016 10:14:25 +0300</lastBuildDate>
+    <pubDate>Tue, 25 Oct 2016 08:56:55 +0300</pubDate>
+    <lastBuildDate>Tue, 25 Oct 2016 08:56:55 +0300</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>How To: Access Tests From Another Module</title>
+        <description>&lt;p&gt;In a multi-module project, you may end up in a situation where you need same
+functionality for tests in multiple modules. For instance, if you have a ‘common’
+module with some testing utilities that you’d like to use in other modules
+as well. Let’s wire our Gradle files to allow us to do that!&lt;/p&gt;
+
+&lt;h2 id=&quot;gradle-configuration&quot;&gt;Gradle Configuration&lt;/h2&gt;
+
+&lt;p&gt;Let’s say you have two modules: a &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module which contains common logic
+used by multiple modules, and an &lt;code class=&quot;highlighter-rouge&quot;&gt;app&lt;/code&gt; module which is your Android application
+that makes use of the &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module. You’d like to use some of the classes
+in the &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module’s tests in &lt;code class=&quot;highlighter-rouge&quot;&gt;app&lt;/code&gt;’s tests.&lt;/p&gt;
+
+&lt;p&gt;This is a rather simple thing to do. First off, in your &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module, define
+this task:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-groovy&quot; data-lang=&quot;groovy&quot;&gt;&lt;span class=&quot;n&quot;&gt;task&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;jarTest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;type:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Jar&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sourceSets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;output&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;classifier&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'test'&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This little task creates a new JAR with all the classes from your tests. This
+is the JAR we will later on use in the other module to access the classes.&lt;/p&gt;
+
+&lt;p&gt;Now, let’s define a new configuration for our &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module called &lt;code class=&quot;highlighter-rouge&quot;&gt;testOutput&lt;/code&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-groovy&quot; data-lang=&quot;groovy&quot;&gt;&lt;span class=&quot;n&quot;&gt;configurations&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;testOutput&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Whenever we want to create the JAR for our tests, this is the configuration we
+will use. Finally, let’s define what artifacts we want to output in this configuration:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-groovy&quot; data-lang=&quot;groovy&quot;&gt;&lt;span class=&quot;n&quot;&gt;artifacts&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;testOutput&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jarTest&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;There we go, our &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module is now fully configured. Now, to pull the
+JAR as a dependency to the &lt;code class=&quot;highlighter-rouge&quot;&gt;app&lt;/code&gt; module, let’s define it in the &lt;code class=&quot;highlighter-rouge&quot;&gt;app&lt;/code&gt; module’s
+dependencies:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-groovy&quot; data-lang=&quot;groovy&quot;&gt;&lt;span class=&quot;n&quot;&gt;dependencies&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;testCompile&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;project&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;path:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;':common'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nl&quot;&gt;configuration:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'testOutput'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;And we are done! Now you can write tests in your &lt;code class=&quot;highlighter-rouge&quot;&gt;app&lt;/code&gt; module and use any and all
+classes you have defined in your &lt;code class=&quot;highlighter-rouge&quot;&gt;common&lt;/code&gt; module’s tests. As always, if you found
+this post useful, consider &lt;strong&gt;buying me a cup of coffee&lt;/strong&gt; - it’ll power me to write
+more stuff!&lt;/p&gt;
+</description>
+        <pubDate>Mon, 24 Oct 2016 12:00:00 +0300</pubDate>
+        <link>http://yourdomain.com/android/2016/10/24/test-modules.html</link>
+        <guid isPermaLink="true">http://yourdomain.com/android/2016/10/24/test-modules.html</guid>
+        
+        
+        <category>android</category>
+        
+      </item>
     
       <item>
         <title>Unit Testing Your LibGDX Game</title>
