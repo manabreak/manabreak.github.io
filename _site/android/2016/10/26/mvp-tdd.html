@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Android MVP & TDD</title>
+    <meta name="description" content="Today (well, for a year or so), MVP seems to be the bees knees of Android development -or at least everyone talks about it quite a bit. However, quite often ...">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://yourdomain.com/android/2016/10/26/mvp-tdd.html">
+    <link rel="alternate" type="application/rss+xml" title="fyi." href="http://yourdomain.com/feed.xml" />
+
+
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+                    m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-52445936-14', 'auto');
+        ga('send', 'pageview');
+
+    </script>
+</head>
+
+
+    <body>
+
+        <header class="site-header">
+
+    <div class="wrapper">
+
+        <div class="title-div">
+            <a class="site-title" href="/">fyi.</a>
+        </div>
+    </div>
+
+    <div class="wrapper">
+        <nav class="site-nav">
+            <a href="#" class="menu-icon">
+                <svg viewBox="0 0 18 15">
+                <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+                <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+                <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+                </svg>
+            </a>
+
+            <div class="trigger">
+                
+                <!-- Static 'Home' link -->
+                <a class="page-link" href="/">Home</a>
+                
+                
+                
+                
+                
+                
+                
+                
+            </div>
+        </nav>
+
+    </div>
+
+</header>
+
+
+        <div class="wrapper">
+        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        <!-- fyi - page - under header -->
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-3632636155475507"
+             data-ad-slot="5572041490"
+             data-ad-format="auto"></ins>
+        <script>
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        </script> 
+        </div>
+
+        <div class="page-content">
+            <div class="wrapper">
+                <div class="post">
+
+    <header class="post-header">
+        <div class="buy-coffee-post-header">
+            <a href='http://ko-fi.com?i=9152LY80MBJF' target='_blank' class="coffee-link">
+                <img style='border:0px' width="150px" src='https://az743702.vo.msecnd.net/cdn/btn1.png' border='0' alt='Buy Me A Coffee at Ko-Fi.com' class="coffee-img"/>
+            </a> 
+        </div>
+        <h1 class="post-title">Android MVP & TDD</h1>
+        <p class="post-meta">Oct 26, 2016</p>
+
+
+    </header>
+
+    <article class="post-content">
+        <p>Today (well, for a year or so), MVP seems to be the bees knees of Android development -
+or at least everyone talks about it quite a bit. However, quite often people are just
+as intrigued as they are confused. How do you actually do MVP in Android? What about
+testing it? In this post, I’ll show you how to whip out an MVP architecture for your
+app. I’ll even combine it with a touch of TDD - because I just love unit testing!</p>
+
+<h2 id="mvp-primer">MVP Primer</h2>
+
+<p>MVP is an abbreviation of Model-View-Presenter. This is a rather simple architecture:
+these all three are layers in your application, with well-structured responsibilities.</p>
+
+<p><code class="highlighter-rouge">Model</code> equals data. This layer contains your Java classes for data, as well as
+the logic for acquiring it (e.g. fetching from a server or reading from a file).
+This layer can also contain some helper methods and utilities, but that’s that -
+no other logic here whatsoever.</p>
+
+<p><code class="highlighter-rouge">View</code> is everything you show to your user. This layer should be as thin as
+possible: It should be about buttons and labels. When the user interacts with
+something on the view, the view shouldn’t “do” anything - it should just pass
+tell the <code class="highlighter-rouge">Presenter</code> that this thing happened.</p>
+
+<p><code class="highlighter-rouge">Presenter</code> is the core element. When the <code class="highlighter-rouge">View</code> tells the presenter something
+happened, the presenter reacts accordingly. For example, <code class="highlighter-rouge">View</code> could tell
+presenter that all of UI is now up and running, and <code class="highlighter-rouge">Presenter</code> chooses to
+react by downloading a list of blog posts from a server. Meanwhile, <code class="highlighter-rouge">Presenter</code>
+also tells <code class="highlighter-rouge">View</code> to show a loading indicator. When the <code class="highlighter-rouge">Model</code> layer is done
+fetching the data, <code class="highlighter-rouge">Presenter</code> may manipulate it further to make it more
+presentable to the user, and finally invokes <code class="highlighter-rouge">View</code> with the data. The very
+last thing in the whole shebang is the <code class="highlighter-rouge">View</code> showing the data to the user.</p>
+
+<p>In “pure” MVP, the <code class="highlighter-rouge">View</code> should not know <em>anything</em> about the <code class="highlighter-rouge">Model</code>, but this
+is something that’s a tad debatable. The main idea is to separate the data and
+the UI, all the while making things <strong>testable</strong>.</p>
+
+<h2 id="mvp-in-android">MVP In Android</h2>
+
+<p>The most common way of implementing MVP in Android is to make either activities
+or fragments to implement the <code class="highlighter-rouge">View</code> layer. This makes our <code class="highlighter-rouge">View</code> less view-y
+than on other platforms since activities and fragments are also responsible
+for handling lifecycle events, navigation and so on. However, this is not a
+big issue if you are careful.</p>
+
+<h2 id="tdd-primer">TDD Primer</h2>
+
+<p>TDD stands for Test-Driven Development. Basically, it means that you first create
+a test, make sure it fails, and then write the <em>minimum amount of code</em>  that makes
+the test pass. Then you re-work your test, adding more stuff to it, making it
+fail again, and then you re-work your code. Rinse and repeat until your feature
+is done!</p>
+
+<p>Why TDD though? Well, first off, it ensures you write your tests. People always
+come up with excuses for why they didn’t write tests at all. Second, writing
+tests beforehand makes you think of the code in such way that makes it <em>testable</em>.
+Often times when you blindly write your app and try to write the tests afterwards,
+you face the fact that you simply can’t test the code! It’s too tightly coupled,
+it’s dependent of a thing that’s not available during testing…</p>
+
+<p>Third and most important thing is that <strong>writing tests beforehand ensures your
+code does what it’s supposed to</strong>. Your tests should represent the use case or
+the business value of what you’re developing, and your code should do just that.
+You should <strong>be coding against the tests, not testing against the code</strong>, because
+in that case you are just validating that your code works, but you don’t verify
+that it does the right thing. It might even be impossible to verify the code
+anymore.</p>
+
+<h2 id="tdd--mvp-in-android">TDD + MVP In Android</h2>
+
+<p>Combining TDD and MVP in Android means that we’re writing tests first, but
+unfortunately we are not going to test everything. We’ll leave the <code class="highlighter-rouge">View</code>
+layer untested for now (since it’s mainly UI testing anyway), and concentrate our
+efforts on the presenter instead. The model layer can be tested as needed, depending
+of your application. In this example, I’ll use simple POJO (Plain Old Java Object) models
+that don’t really need any testing (unless you want to bump the coverage up).</p>
+
+<p>So, let’s start!</p>
+
+<h2 id="first-iteration---presenter">First Iteration - Presenter</h2>
+
+<p>Let’s begin by creating a new Android project with an empty activity. After you’re
+done with the wizard, you should be represented by your main activity like this:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kn">package</span> <span class="n">me</span><span class="o">.</span><span class="na">manabreak</span><span class="o">.</span><span class="na">mvptest</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">android.support.v7.app.AppCompatActivity</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">android.os.Bundle</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">MainActivity</span> <span class="kd">extends</span> <span class="n">AppCompatActivity</span> <span class="o">{</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);</span>
+        <span class="n">setContentView</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">layout</span><span class="o">.</span><span class="na">activity_main</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Next, we’re going to write the presenter. However, let’s not start by coding -
+instead, let’s create the test first! So, create a new class in under the <code class="highlighter-rouge">test</code>
+package named <code class="highlighter-rouge">MyPresenterTest</code>.</p>
+
+<p>Now, before writing any tests, you should have a good hunch of what the presenter
+should be doing. In our example, the view will show a list of items to the user,
+so the presenter should probably be loading the items and offering them to the
+view. Great! Let’s write a test for that:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MyPresenterTest</span> <span class="o">{</span>
+
+    <span class="nd">@Test</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">testLoadItems</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">();</span>
+        <span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>But… We don’t have a <code class="highlighter-rouge">MyPresenter</code> class, not to mention a method in that class.
+Which is good! This is our first step in TDD - we have a test that <em>fails</em>. In
+TDD, you should be writing tests only as long as you get your first failure.
+Missing classes, missing methods, or just a failing unit test are all failures in
+this sense.</p>
+
+<p>Let’s move on and create a new class called <code class="highlighter-rouge">MyPresenter</code>, and create a method
+called <code class="highlighter-rouge">load()</code> there. Now, let’s run our test and ensure that it passes:</p>
+
+<p><img src="/assets/tdd/01.png" alt="First Test - Success" /></p>
+
+<p>Whoo! We just completed our very first cycle of TDD. Now, it’s just iterating
+until our feature is complete. From our test’s point-of-view, we don’t care what
+happens inside <code class="highlighter-rouge">load()</code> - it could stay empty for all it cares, <em>as long as it
+passes</em>. So, let’s continue on our MVP implementation and think of the presenter
+as “done” for now - you’ll soon see why it’s not quite done yet. :)</p>
+
+<h2 id="second-iteration---view">Second Iteration - View</h2>
+
+<p>Okay, let’s start the next iteration. Now we want to test that the view is presented
+with the data, so let’s pass the view to the presenter as a constructor parameter:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testLoadItems</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="n">view</span><span class="o">);</span>
+    <span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Aaaaand we’re back with the missing class again. We don’t have a <code class="highlighter-rouge">view</code> object,
+and we don’t even know what type it is! Let’s solve the problem by creating one.
+We don’t want to be dependent of the Android platform to run our tests, so let’s
+abstract the activity away by using an interface for the view:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">MyView</span> <span class="o">{</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Now, let’s create a view for our testing purposes and pass that to the presenter:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testLoadItems</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">// Note that the view has an empty body for now</span>
+    <span class="n">MyView</span> <span class="n">view</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyView</span><span class="o">()</span> <span class="o">{};</span>
+    <span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="n">view</span><span class="o">);</span>
+    <span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>We are still getting an error because the presenter doesn’t have a proper constructor
+yet. Let’s create a constructor that takes the view as a parameter:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MyPresenter</span> <span class="o">{</span>
+
+    <span class="c1">// Our precious view</span>
+    <span class="kd">private</span> <span class="n">MyView</span> <span class="n">view</span><span class="o">;</span>
+
+    <span class="c1">// Our constructor that binds the view</span>
+    <span class="kd">public</span> <span class="nf">MyPresenter</span><span class="o">(</span><span class="n">MyView</span> <span class="n">view</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">view</span> <span class="o">=</span> <span class="n">view</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="c1">// Our smart-ass loading method</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">load</span><span class="o">()</span> <span class="o">{</span>
+
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>We can now run the test and notice that it works, but… How do we ensure that
+the presenter called the view? We know it didn’t, though, but how can we be sure
+from the test’s point-of-view?</p>
+
+<h2 id="third-iteration---actually-coding-something">Third Iteration - Actually Coding Something</h2>
+
+<p>We can use the view in our test to ensure that the view was actually called with
+actual data. For this, we’ll create a new method in our view interface called
+<code class="highlighter-rouge">showItems()</code>, which is called by the presenter to present the loaded items on the UI:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">MyView</span> <span class="o">{</span>
+    <span class="kt">void</span> <span class="nf">showItems</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span><span class="o">);</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Let’s implement this in our test. To ensure that something happens, the view passes
+the received data back to the test so we can verify it.</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testLoadItems</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">// We'll be verifying the contents of this list!</span>
+    <span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">itemsToVerify</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+
+    <span class="n">MyView</span> <span class="n">view</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyView</span><span class="o">()</span> <span class="o">{</span>
+        <span class="c1">// This should be called by the presenter when the</span>
+        <span class="c1">// items are loaded and ready to be shown on the UI</span>
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">showItems</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span><span class="o">)</span> <span class="o">{</span>
+            <span class="c1">// Copy all the items to our other list</span>
+            <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">addAll</span><span class="o">(</span><span class="n">items</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">};</span>
+
+    <span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="n">view</span><span class="o">);</span>
+    <span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span>
+
+    <span class="c1">// Let's verify that there's exactly three items here!</span>
+    <span class="n">assertEquals</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">size</span><span class="o">());</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Phew, our test just grew quite a bit! Here, our view now implements the one
+and only method we have so far. When the presenter calls it, the list of items
+is copied to the <code class="highlighter-rouge">itemsToVerify</code> list. After we have called <code class="highlighter-rouge">p.load()</code>, we anticipate
+that the view is invoked and the list is copied, so we want to verify the results.
+The very last line does exactly just that - it ensures that there are now three
+items in the list. Is there? Let’s find out! Run the test again and see for
+yourself:</p>
+
+<figure class="highlight"><pre><code class="language-plain" data-lang="plain">java.lang.AssertionError:
+Expected :3
+Actual   :0</code></pre></figure>
+
+<p>Surprise! Of course there’s no items, because the view is never invoked! Not to mention
+the presenter never does anything! <em>Now</em> we <em>finally</em> get to write the presenter!</p>
+
+<p>So, let’s go and write the code that satisfies this test - but remember, <strong>don’t</strong>
+write more code than absolutely necessary!</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MyPresenter</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="n">MyView</span> <span class="n">view</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="nf">MyPresenter</span><span class="o">(</span><span class="n">MyView</span> <span class="n">view</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">view</span> <span class="o">=</span> <span class="n">view</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="c1">// Invokes the view with a list of three strings</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">load</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="n">items</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"First"</span><span class="o">);</span>
+        <span class="n">items</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"Second"</span><span class="o">);</span>
+        <span class="n">items</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"Third"</span><span class="o">);</span>
+        <span class="n">view</span><span class="o">.</span><span class="na">showItems</span><span class="o">(</span><span class="n">items</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>There we go! A simple list of three strings. Re-run the test and you should see
+the test passed. Nice job!</p>
+
+<p>You might be wondering now: “What about the model? Where’s that?” In our example
+here, the whole model layer consists of the <code class="highlighter-rouge">String</code> class. Basically, the layer
+doesn’t even exist for now. Hmm… Hold on. How do we ensure the items we got
+passed to the view are <strong>the correct ones</strong> when the presenter is the only one
+who knows about them?</p>
+
+<h2 id="fourth-iteration---models">Fourth Iteration - Models</h2>
+
+<p>The answer is, we’ll implement our model layer. The model layer offers the items
+to the presenter layer, so quite obviously we start by passing another constructor
+parameter, just like in the case of the view. Let’s call our model layer <code class="highlighter-rouge">service</code>:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="c1">// This is the only line that changed - we added the 'service' argument</span>
+<span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="n">view</span><span class="o">,</span> <span class="n">service</span><span class="o">);</span>
+<span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span></code></pre></figure>
+
+<p>Just like with the view, we’ll also create an interface for this. To save some
+time, let’s also add the method to fetch the items here already:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">MyService</span> <span class="o">{</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">getItems</span><span class="o">();</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Back to the test: Let’s create an object to represent our service and implement
+the interface. We will feed the service with a test list of items.</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">serviceItems</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+<span class="n">serviceItems</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"A"</span><span class="o">);</span>
+<span class="n">serviceItems</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"B"</span><span class="o">);</span>
+<span class="n">serviceItems</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"C"</span><span class="o">);</span>
+<span class="n">MyService</span> <span class="n">service</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyService</span><span class="o">()</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">getItems</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">serviceItems</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">};</span>
+<span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="n">view</span><span class="o">,</span> <span class="n">service</span><span class="o">);</span>
+<span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span></code></pre></figure>
+
+<p>One more thing to fix: Change the constructor of the presenter to accept two
+arguments:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">private</span> <span class="n">MyView</span> <span class="n">view</span><span class="o">;</span>
+<span class="kd">private</span> <span class="n">MyService</span> <span class="n">service</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="nf">MyPresenter</span><span class="o">(</span><span class="n">MyView</span> <span class="n">view</span><span class="o">,</span> <span class="n">MyService</span> <span class="n">service</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">view</span> <span class="o">=</span> <span class="n">view</span><span class="o">;</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">service</span> <span class="o">=</span> <span class="n">service</span><span class="o">;</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>To re-cap, the whole test now looks like this:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testLoadItems</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">// We'll be verifying the contents of this list!</span>
+    <span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">itemsToVerify</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+
+    <span class="n">MyView</span> <span class="n">view</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyView</span><span class="o">()</span> <span class="o">{</span>
+        <span class="c1">// This should be called by the presenter when the</span>
+        <span class="c1">// items are loaded and ready to be shown on the UI</span>
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">showItems</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span><span class="o">)</span> <span class="o">{</span>
+            <span class="c1">// Copy all the items to our other list</span>
+            <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">addAll</span><span class="o">(</span><span class="n">items</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">};</span>
+
+    <span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">serviceItems</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+    <span class="n">serviceItems</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"A"</span><span class="o">);</span>
+    <span class="n">serviceItems</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"B"</span><span class="o">);</span>
+    <span class="n">serviceItems</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"C"</span><span class="o">);</span>
+    <span class="n">MyService</span> <span class="n">service</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyService</span><span class="o">()</span> <span class="o">{</span>
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">getItems</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">serviceItems</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">};</span>
+    <span class="n">MyPresenter</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="n">view</span><span class="o">,</span> <span class="n">service</span><span class="o">);</span>
+    <span class="n">p</span><span class="o">.</span><span class="na">load</span><span class="o">();</span>
+
+    <span class="c1">// Let's verify that there's exactly three items here!</span>
+    <span class="n">assertEquals</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">size</span><span class="o">());</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>You can run this test and you’ll see that it works just fine! Now, let’s add
+three more assertions to the end of it to see that we really get the three strings
+<code class="highlighter-rouge">A</code>, <code class="highlighter-rouge">B</code> and <code class="highlighter-rouge">C</code> our service returns.</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="n">assertEquals</span><span class="o">(</span><span class="s">"A"</span><span class="o">,</span> <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">0</span><span class="o">));</span>
+<span class="n">assertEquals</span><span class="o">(</span><span class="s">"B"</span><span class="o">,</span> <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+<span class="n">assertEquals</span><span class="o">(</span><span class="s">"C"</span><span class="o">,</span> <span class="n">itemsToVerify</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">2</span><span class="o">));</span></code></pre></figure>
+
+<p>Now we run the test, and… Uh oh:</p>
+
+<figure class="highlight"><pre><code class="language-plain" data-lang="plain">org.junit.ComparisonFailure:
+Expected :A
+Actual   :First</code></pre></figure>
+
+<p>Hold on, our presenter doesn’t yet ask the service for the items! Let’s change
+that:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="c1">// Invokes the view with a list</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">load</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="na">getItems</span><span class="o">();</span>
+    <span class="n">view</span><span class="o">.</span><span class="na">showItems</span><span class="o">(</span><span class="n">items</span><span class="o">);</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Ta-dah! Your test should be passing now. Now we can do end-to-end verification
+through our MVP: The view invokes presenter, presenter fetches data from the model
+layer, and passes it to the view. And we haven’t even written any Android stuff
+yet!</p>
+
+<h2 id="bring-in-the-android">Bring in the Android!</h2>
+
+<p>Now we have some fully tested code powering up our MVP, so we can go and wire it up
+in our activity. First off, let’s make a crude UI that hold a button and three
+text views. The idea is that when the user taps the button, the presenter will
+fetch the three strings and pass them back to the view, which will then populate
+the text views using them.</p>
+
+<p>So, open the <code class="highlighter-rouge">activity_main.xml</code> layout and make it look like below. Note that
+the root element is a <code class="highlighter-rouge">LinearLayout</code>.</p>
+
+<figure class="highlight"><pre><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version="1.0" encoding="utf-8"?&gt;</span>
+<span class="nt">&lt;LinearLayout</span> <span class="na">xmlns:android=</span><span class="s">"http://schemas.android.com/apk/res/android"</span>
+    <span class="na">android:id=</span><span class="s">"@+id/activity_main"</span>
+    <span class="na">android:layout_width=</span><span class="s">"match_parent"</span>
+    <span class="na">android:layout_height=</span><span class="s">"match_parent"</span>
+    <span class="na">android:gravity=</span><span class="s">"center_horizontal"</span>
+    <span class="na">android:orientation=</span><span class="s">"vertical"</span>
+    <span class="na">android:paddingBottom=</span><span class="s">"@dimen/activity_vertical_margin"</span>
+    <span class="na">android:paddingLeft=</span><span class="s">"@dimen/activity_horizontal_margin"</span>
+    <span class="na">android:paddingRight=</span><span class="s">"@dimen/activity_horizontal_margin"</span>
+    <span class="na">android:paddingTop=</span><span class="s">"@dimen/activity_vertical_margin"</span><span class="nt">&gt;</span>
+
+    <span class="c">&lt;!-- The button to load the items --&gt;</span>
+    <span class="nt">&lt;Button</span>
+        <span class="na">android:id=</span><span class="s">"@+id/button_load_items"</span>
+        <span class="na">android:layout_width=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:layout_height=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:text=</span><span class="s">"Load Items"</span> <span class="nt">/&gt;</span>
+
+    <span class="c">&lt;!-- The first item --&gt;</span>
+    <span class="nt">&lt;TextView</span>
+        <span class="na">android:id=</span><span class="s">"@+id/text_one"</span>
+        <span class="na">android:layout_width=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:layout_height=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:text=</span><span class="s">"Nothing yet."</span> <span class="nt">/&gt;</span>
+
+    <span class="c">&lt;!-- The second item --&gt;</span>
+    <span class="nt">&lt;TextView</span>
+        <span class="na">android:id=</span><span class="s">"@+id/text_two"</span>
+        <span class="na">android:layout_width=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:layout_height=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:text=</span><span class="s">"Nothing yet."</span> <span class="nt">/&gt;</span>
+
+    <span class="c">&lt;!-- The third item --&gt;</span>
+    <span class="nt">&lt;TextView</span>
+        <span class="na">android:id=</span><span class="s">"@+id/text_three"</span>
+        <span class="na">android:layout_width=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:layout_height=</span><span class="s">"wrap_content"</span>
+        <span class="na">android:text=</span><span class="s">"Nothing yet."</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;/LinearLayout&gt;</span></code></pre></figure>
+
+<p>Next, open the <code class="highlighter-rouge">MainActivity</code> class and bind the views to fields:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MainActivity</span> <span class="kd">extends</span> <span class="n">AppCompatActivity</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="n">Button</span> <span class="n">button</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="n">TextView</span> <span class="n">textOne</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="n">TextView</span> <span class="n">textTwo</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="n">TextView</span> <span class="n">textThree</span><span class="o">;</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);</span>
+        <span class="n">setContentView</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">layout</span><span class="o">.</span><span class="na">activity_main</span><span class="o">);</span>
+
+        <span class="n">button</span> <span class="o">=</span> <span class="o">(</span><span class="n">Button</span><span class="o">)</span> <span class="n">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">button_load_items</span><span class="o">);</span>
+
+        <span class="n">textOne</span> <span class="o">=</span> <span class="o">(</span><span class="n">TextView</span><span class="o">)</span> <span class="n">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">text_one</span><span class="o">);</span>
+        <span class="n">textTwo</span> <span class="o">=</span> <span class="o">(</span><span class="n">TextView</span><span class="o">)</span> <span class="n">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">text_two</span><span class="o">);</span>
+        <span class="n">textThree</span> <span class="o">=</span> <span class="o">(</span><span class="n">TextView</span><span class="o">)</span> <span class="n">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">text_three</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>You can launch your app at this point, and you should see a button with three
+text views under it. Nothing happens when you click the button, though, and we
+don’t have the MVP in place just yet. Let’s fix that! First, let’s finalize our
+view layer by making the activity implement the <code class="highlighter-rouge">MyView</code> interface:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="c1">// Note the 'implements' part</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">MainActivity</span> <span class="kd">extends</span> <span class="n">AppCompatActivity</span> <span class="kd">implements</span> <span class="n">MyView</span> <span class="o">{</span>
+
+    <span class="c1">// The other stuff goes here</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">showItems</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span><span class="o">)</span> <span class="o">{</span>
+        <span class="c1">// Let's populate the text views</span>
+        <span class="n">textOne</span><span class="o">.</span><span class="na">setText</span><span class="o">(</span><span class="n">items</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">0</span><span class="o">));</span>
+        <span class="n">textTwo</span><span class="o">.</span><span class="na">setText</span><span class="o">(</span><span class="n">items</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+        <span class="n">textThree</span><span class="o">.</span><span class="na">setText</span><span class="o">(</span><span class="n">items</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">2</span><span class="o">));</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Now just three more things: First, let’s create a new, concrete service class
+that pretty much does just the same thing as the one we wrote in the test:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ConcreteService</span> <span class="kd">implements</span> <span class="n">MyService</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">getItems</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">items</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="n">items</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"A"</span><span class="o">);</span>
+        <span class="n">items</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"B"</span><span class="o">);</span>
+        <span class="n">items</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="s">"C"</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">items</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>Second, create the presenter in the activity:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="c1">// Other fields go here...</span>
+
+<span class="c1">// Here's the presenter</span>
+<span class="kd">private</span> <span class="n">MyPresenter</span> <span class="n">presenter</span><span class="o">;</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);</span>
+        <span class="n">setContentView</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">layout</span><span class="o">.</span><span class="na">activity_main</span><span class="o">);</span>
+
+        <span class="c1">// Here we pass the activity ('this') as the view and create a new service</span>
+        <span class="n">presenter</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MyPresenter</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="k">new</span> <span class="n">ConcreteService</span><span class="o">());</span>
+
+        <span class="c1">// The other stuff goes here...</span></code></pre></figure>
+
+<p>And for the grand finale, let’s make the button to actually call the presenter:</p>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="n">button</span> <span class="o">=</span> <span class="o">(</span><span class="n">Button</span><span class="o">)</span> <span class="n">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">button_load_items</span><span class="o">);</span>
+<span class="n">button</span><span class="o">.</span><span class="na">setOnClickListener</span><span class="o">(</span><span class="k">new</span> <span class="n">View</span><span class="o">.</span><span class="na">OnClickListener</span><span class="o">()</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onClick</span><span class="o">(</span><span class="n">View</span> <span class="n">view</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">presenter</span><span class="o">.</span><span class="na">load</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">});</span></code></pre></figure>
+
+<p><strong>AND WE ARE DONE!</strong> Let’s take the app for a spin. After you launch the app,
+you should see this:</p>
+
+<p><img src="/assets/tdd/before.png" alt="Before..." /></p>
+
+<p>And when you click the button, you should see the magic happen:</p>
+
+<p><img src="/assets/tdd/after.png" alt="..and AFTER!" /></p>
+
+<p>Awesome!</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Doing MVP in Android is nothing difficult, just like TDD is not difficult. However,
+both (and especially TDD) require a certain change in your mindset if you’re not
+used to them.</p>
+
+<p>With TDD, you end up with highly tested code and you become more confident about
+it. When you write your code in an MVP manner, your code is well structured and,
+most importantly, it’s <em>testable</em>. Together, these two provide you with a stable
+framework to build your app upon.</p>
+
+<p>As always, if you found this post helpful or if you learned something and want
+to thank me, consider <strong>buying me a cup of coffee</strong>. It fuels my coding and makes
+me want to write more posts. :)  Until next time!</p>
+
+    </article>
+
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <!-- fyi - post - bottom -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-3632636155475507"
+         data-ad-slot="5770517898"
+         data-ad-format="auto"></ins>
+    <script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+
+</div>
+
+            </div>
+        </div>
+
+        <div class="wrapper">
+    <footer class="site-footer">
+
+        <div class="coffee-wrapper">
+            <a href='http://ko-fi.com?i=9152LY80MBJF' target='_blank' class="coffee-link">
+                <img style='border:0px' width="150px" src='https://az743702.vo.msecnd.net/cdn/btn1.png' border='0' alt='Buy Me A Coffee at Ko-Fi.com' class="coffee-img"/>
+            </a> 
+        </div>
+        
+        
+        <div class="some-wrapper">
+            <a href="https://twitter.com/dManabreak">
+                <span class="icon  icon--twitter">
+                    <svg viewBox="0 0 16 16">
+                    <path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809
+                          c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/>
+                    </svg>
+                </span>
+
+                <span class="username">dManabreak</span>
+            </a>
+        </div>
+        
+
+        <p class="rss-subscribe">subscribe <a href="/feed.xml">via RSS</a></p>
+
+        
+
+    </footer>
+</div>
+
+
+    </body>
+
+</html>
