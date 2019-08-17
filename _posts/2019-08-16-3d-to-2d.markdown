@@ -10,7 +10,7 @@ some additional nods to more modern indie games. In this post,
 I'll shed some light on the most obvious part of the game's
 looks - which is the "perceived" 2D look and how it's achieved.
 
-<video width="640" height="480" autoplay>
+<video width="640" height="480" autoplay loop>
     <source src="/assets/intro.mp4" type="video/mp4">
 </video>
 
