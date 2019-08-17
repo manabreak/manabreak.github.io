@@ -3,6 +3,7 @@ layout: post
 title:  "Legacy of Satos Devlog #1 - From 3D To 2D"
 date:   2019-08-16 19:57:51 +0300
 categories: devlog satos 3d
+google_analytics: UA-145838923-1
 ---
 Legacy of Satos is a hobby project of mine that I try to take
 semi-seriously. It's a nod to old NES and SNES era RPGs, with
