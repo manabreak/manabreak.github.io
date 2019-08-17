@@ -23,6 +23,7 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "coffeepowered.dev" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: dManabreak
 github_username:  manabreak
+google_analytics: UA-145838923-1
 
 # Build settings
 markdown: kramdown
