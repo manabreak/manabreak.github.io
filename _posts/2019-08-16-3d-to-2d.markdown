@@ -10,9 +10,19 @@ some additional nods to more modern indie games. In this post,
 I'll shed some light on the most obvious part of the game's
 looks - which is the "perceived" 2D look and how it's achieved.
 
-<video width="320" height="240" autoplay>
+<video width="640" height="480" autoplay>
     <source src="/assets/intro.mp4" type="video/mp4">
 </video>
+
+The majority of my development effort so far has been around
+the rendering engine - and much to my own surprise, getting
+from the initial idea to actually having a working rendering
+pipeline has been a lot of work!
+
+In this series of development blog posts, I'll try to share knowledge about
+the inner workings of the game, as well as reports
+on the occasional progress I make. First off, let's take a look
+at the very basics of the rendering: How is the 2D look achieved?
 
 # 2D? Or 3D?
 
@@ -138,3 +148,37 @@ a full-screen quad.
 In the above image is the result of the framebuffer right before
 it's upscaled and rendered on the full-screen quad.
 
+# What is actually being rendered?
+
+This is a topic for a whole 'nother post, as there's so much more
+going on in there!
+
+In a nutshell, the rendering pipeline consists of a deferred
+renderer and a forward renderer. The deferred context is used for
+the majority of stuff, such as level geometry and 3D sprites.
+The forward context is used for unshaded and blended sprites,
+such as some bright particles.
+
+As a peculiar sidenote, the deferred context is also used for
+blended sprites - something which is rather uncommon since deferred
+contexts do not support blending. However, in this kind of game,
+sprites can have a semi-transparent, static drop shadow, which is
+used to only darken the color below it. It's not a real shadow
+and does not look correct in lighting sense in all cases, but
+for the purposes of this game, it works.
+
+# Conclusion
+
+I hope I've shared enough secrets about camera projection so
+that there's no mystique going around it anymore. It's been a
+path of trial and error, and it has taken multiple rewrites
+until I got it exactly where I wanted it to be. Chances are your
+game demands something different and will have its very own
+obstacles, though.
+
+In the upcoming posts, I'll try to dive into the lighting system,
+as well as some more gameplay-related parts of the engine, like
+how the game is ultimately data-driven and encounters can be
+scripted in JSON.
+
+Until next time!
